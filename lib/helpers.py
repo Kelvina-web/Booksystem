@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker,joinedload
 from db.models import Base, Genre, Book, Review, ReadingStatus
 from datetime import datetime
 
@@ -17,7 +17,7 @@ def list_genres():
 
 def list_books():
     session = get_session()
-    books = session.query(Book).all()
+    books = session.query(Book).options(joinedload(Book.genre)).all()
     session.close()
     return books
 
