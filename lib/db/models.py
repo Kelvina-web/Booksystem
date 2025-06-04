@@ -1,11 +1,13 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float, Text , create_engine 
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float, Text, create_engine
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 import enum
+from datetime import datetime
 
 Base = declarative_base()
-engine =create_engine("sqlite:///Booksystem.db") 
+engine = create_engine("sqlite:///Booksystem.db")
 Session = sessionmaker(bind=engine)
 session = Session()
+
 class ReadingStatus(enum.Enum):
     to_read = "To Read"
     reading = "Reading"
@@ -36,6 +38,11 @@ class Book(Base):
     genre = relationship('Genre', back_populates='books')
     reviews = relationship('Review', back_populates='book', cascade='all, delete-orphan')
 
+    def average_rating(self):
+        if not self.reviews:
+            return "No ratings yet"
+        return round(sum(review.rating for review in self.reviews) / len(self.reviews), 2)
+
     def __repr__(self):
         return f"<Book(title='{self.title}', author='{self.author}', status='{self.status.value}')>"
 
@@ -46,7 +53,7 @@ class Review(Base):
     book_id = Column(Integer, ForeignKey('books.id'))
     rating = Column(Float, nullable=False)
     comment = Column(Text)
-    date_added = Column(String)
+    date_added = Column(String, default=datetime.utcnow().isoformat)
 
     book = relationship('Book', back_populates='reviews')
 

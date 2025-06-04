@@ -3,6 +3,8 @@ from sqlalchemy.orm import sessionmaker,joinedload
 from db.models import Base, Genre, Book, Review, ReadingStatus
 from datetime import datetime
 
+
+
 engine = create_engine('sqlite:///bookbuddy.db')
 Session = sessionmaker(bind=engine)
 
@@ -15,9 +17,17 @@ def list_genres():
     session.close()
     return genres
 
-def list_books():
+def list_books(sort_by=None):
     session = get_session()
-    books = session.query(Book).options(joinedload(Book.genre)).all()
+    query = session.query(Book).options(
+        joinedload(Book.genre),
+        joinedload(Book.reviews)
+    )
+    
+    if sort_by:
+        query = query.order_by(sort_by)
+        
+    books = query.all()
     session.close()
     return books
 
@@ -117,3 +127,27 @@ def get_top_rated_books(limit=5):
     
     session.close()
     return [(book.title, book.author, round(book.avg_rating, 2)) for book in top_books]
+def get_book_details(book):
+    # Ensure we have all the data we need
+    details = {
+        'title': book.title,
+        'author': book.author,
+        'status': book.status.value,
+        'genre': book.genre.name,
+        'publication_year': book.publication_year,
+        'isbn': book.isbn,
+        'average_rating': book.average_rating(),
+    }
+    
+    # Handle reviews safely
+    reviews = []
+    if hasattr(book, 'reviews') and book.reviews:
+        for review in book.reviews:
+            reviews.append({
+                'rating': review.rating,
+                'comment': review.comment,
+                'date': review.date_added  # Changed from review.date
+            })
+    
+    details['reviews'] = reviews
+    return details
